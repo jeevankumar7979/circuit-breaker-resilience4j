@@ -2,6 +2,7 @@ package com.jeevankumar.orderservice;
 
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -11,15 +12,23 @@ import org.springframework.web.server.ResponseStatusException;
 public class OrderService {
     private final InventoryClient inventoryClient;
     private final CircuitBreaker inventoryCircuitBreaker;
+    private final RateLimiter orderCreationRateLiiter;
     private final PurchaseOrderRepository orderRepository;
 
-    public OrderService(InventoryClient inventoryClient, CircuitBreaker inventoryCircuitBreaker, PurchaseOrderRepository orderRepository) {
+    public OrderService(InventoryClient inventoryClient, CircuitBreaker inventoryCircuitBreaker, RateLimiter orderCreationRateLiiter, PurchaseOrderRepository orderRepository) {
         this.inventoryClient = inventoryClient;
         this.inventoryCircuitBreaker = inventoryCircuitBreaker;
+        this.orderCreationRateLiiter = orderCreationRateLiiter;
         this.orderRepository = orderRepository;
     }
 
     public PurchaseOrder createOrder(OrderRequest request) {
+        return orderCreationRateLiiter.executeSupplier(() ->
+                        createOrderWithInventoryCheck(request)
+                );
+    }
+
+    private PurchaseOrder createOrderWithInventoryCheck(OrderRequest request) {
         try{
             InventoryClient.InventoryResponse inventory = inventoryCircuitBreaker.executeSupplier(
                     () -> inventoryClient.getInventory(request.sku())

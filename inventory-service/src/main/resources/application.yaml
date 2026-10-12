@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: inventory-service
+
+# Database configurations
+  datasource:
+    url: jdbc:h2:mem:inventorydb
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+# Hibernate configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    open-in-view: false
+
+# H2 Databases enable from browser
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+server:
+  port: 8082
+
+#  Spring boot actuator works
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - beans
+          - health
+          - info
+  endpoint:
+    health:
+      show-details: never
+
